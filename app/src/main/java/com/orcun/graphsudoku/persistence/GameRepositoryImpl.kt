@@ -99,7 +99,7 @@ class GameRepositoryImpl (
     private suspend fun createAndWriteNewGame(settings: Settings): GameStorageResult {
         return gameStorage.updateGame(
             SudokuPuzzle(
-                settings.boundry,
+                settings.boundary,
                 settings.difficulty
             )
         )
