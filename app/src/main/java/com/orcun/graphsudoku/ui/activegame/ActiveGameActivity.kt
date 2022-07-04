@@ -9,6 +9,7 @@ import com.orcun.graphsudoku.R
 import com.orcun.graphsudoku.common.makeToast
 import com.orcun.graphsudoku.ui.GraphSudokuTheme
 import com.orcun.graphsudoku.ui.activegame.buildlogic.buildActiveGameLogic
+import com.orcun.graphsudoku.ui.newgame.NewGameActivity
 import kotlin.math.log
 
 class ActiveGameActivity : AppCompatActivity(), ActiveGameContainer {

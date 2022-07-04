@@ -164,20 +164,19 @@ class ActiveGameLogic(
     }
 
     private fun checkIfNewRecord() = launch {
-        statsRepo.updateStatistics(
+        statsRepo.updateStatistic(
             viewModel.timerState,
             viewModel.difficulty,
             viewModel.boundary,
             { isRecord ->
                 viewModel.isNewRecordState = isRecord
-                viewModel.updateComplateState()
+                viewModel.updateCompleteState()
             },
             {
                 container?.showError()
-                viewModel.updateComplateState()
+                viewModel.updateCompleteState()
             }
         )
-
     }
 
 

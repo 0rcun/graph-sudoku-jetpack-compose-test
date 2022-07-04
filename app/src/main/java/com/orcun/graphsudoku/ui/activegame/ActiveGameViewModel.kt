@@ -90,7 +90,7 @@ class ActiveGameViewModel {
         subBoardState?.invoke(boardState)
     }
 
-    internal fun updateComplateState(){
+    internal fun updateCompleteState(){
         isComplateState = true
         subContentState?.invoke(ActiveGameScreenState.COMPLETE)
     }

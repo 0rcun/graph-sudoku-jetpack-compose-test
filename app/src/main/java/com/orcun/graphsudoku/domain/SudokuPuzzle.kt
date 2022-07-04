@@ -1,5 +1,6 @@
 package com.orcun.graphsudoku.domain
 
+import com.orcun.graphsudoku.computationlogic.buildNewSudoku
 import java.io.Serializable
 import java.util.*
 import kotlin.collections.LinkedHashMap

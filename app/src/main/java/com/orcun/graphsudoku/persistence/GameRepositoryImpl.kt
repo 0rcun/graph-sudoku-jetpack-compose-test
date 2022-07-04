@@ -2,6 +2,7 @@ package com.orcun.graphsudoku.persistence
 
 import com.orcun.graphsudoku.domain.*
 import java.lang.Exception
+import com.orcun.graphsudoku.computationlogic.puzzleIsComplete
 
 class GameRepositoryImpl (
     private val gameStorage: IGameDataStorage,
@@ -49,29 +50,34 @@ class GameRepositoryImpl (
         onError: (Exception) -> Unit
     ) {
         when(val result = gameStorage.updateNode(x, y, color, elapsedTime)){
-            is GameStorageResult.OnSuccess -> onSuccess(puzzleIsComplate(result.currentGame))
+            is GameStorageResult.OnSuccess -> onSuccess(puzzleIsComplete(result.currentGame))
             is GameStorageResult.OnError -> onError(result.exception)
         }
     }
 
     override suspend fun getCurrentGame(
-        onSuccess: (currentGame: SudokuPuzzle, isComplete: Boolean) -> Unit,
+        onSuccess: (SudokuPuzzle, Boolean) -> Unit,
         onError: (Exception) -> Unit
     ) {
-        when(val getCurrentGameResult = gameStorage.getCurrentGame()){
+        when (val getCurrentGameResult = gameStorage.getCurrentGame()) {
             is GameStorageResult.OnSuccess -> onSuccess(
                 getCurrentGameResult.currentGame,
-                puzzleIsComplated(getCurrentGameResult.currentGame)
+                puzzleIsComplete(
+                    getCurrentGameResult.currentGame
+                )
             )
             is GameStorageResult.OnError -> {
-                when(val getSettingsResult = settingsStorage.getSettings()){
+                when (val getSettingsResult = settingsStorage.getSettings()) {
                     is SettingsStorageResult.OnSuccess -> {
-                        when(val updateGameResult = createAndWriteNewGame(getSettingsResult.settings)){
-                            is SettingsStorageResult.OnSuccess -> onSuccess(
+                        when (val updateGameResult =
+                            createAndWriteNewGame(getSettingsResult.settings)) {
+                            is GameStorageResult.OnSuccess -> onSuccess(
                                 updateGameResult.currentGame,
-                                puzzleIsComplated(updateGameResult.currentGame)
+                                puzzleIsComplete(
+                                    updateGameResult.currentGame
+                                )
                             )
-                            is SettingsStorageResult.OnError-> onError(updateGameResult.exception)
+                            is GameStorageResult.OnError -> onError(updateGameResult.exception)
                         }
                     }
                     is SettingsStorageResult.OnError -> onError(getSettingsResult.exception)
