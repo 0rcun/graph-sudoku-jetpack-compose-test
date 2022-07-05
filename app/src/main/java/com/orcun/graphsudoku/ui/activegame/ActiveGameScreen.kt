@@ -23,14 +23,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.constraintlayout.compose.ConstraintLayout
-import com.google.firebase.events.EventHandler
-import com.orcun.graphsudoku.ui.components.AppToolbar
 import com.orcun.graphsudoku.R
 import com.orcun.graphsudoku.common.toTime
+import com.orcun.graphsudoku.computationlogic.sqrt
 import com.orcun.graphsudoku.ui.*
+import com.orcun.graphsudoku.ui.components.AppToolbar
 import com.orcun.graphsudoku.ui.components.LoadingScreen
 import java.util.HashMap
-import kotlin.math.sqrt
 
 
 /**
@@ -42,50 +41,50 @@ enum class ActiveGameScreenState {
     ACTIVE,
     COMPLETE
 }
-
 @ExperimentalMaterialApi
 @Composable
 fun ActiveGameScreen(
     onEventHandler: (ActiveGameEvent) -> Unit,
     viewModel: ActiveGameViewModel
-){
+) {
 
     val contentTransitionState = remember {
-        MutableTransitionState(ActiveGameScreenState.LOADING)
+        MutableTransitionState(
+            ActiveGameScreenState.LOADING
+        )
     }
-
     viewModel.subContentState = {
         contentTransitionState.targetState = it
     }
-
     val transition = updateTransition(contentTransitionState)
 
     val loadingAlpha by transition.animateFloat(
-        transitionSpec = { tween(300) }
+        transitionSpec = { tween(durationMillis = 300) }
     ) {
         if (it == ActiveGameScreenState.LOADING) 1f else 0f
     }
 
     val activeAlpha by transition.animateFloat(
-        transitionSpec = { tween(300) }
+        transitionSpec = { tween(durationMillis = 300) }
     ) {
         if (it == ActiveGameScreenState.ACTIVE) 1f else 0f
     }
 
     val completeAlpha by transition.animateFloat(
-        transitionSpec = { tween(300) }
+        transitionSpec = { tween(durationMillis = 300) }
     ) {
         if (it == ActiveGameScreenState.COMPLETE) 1f else 0f
     }
-    
     Column(
         Modifier
             .background(MaterialTheme.colors.primary)
             .fillMaxHeight()
     ) {
+
         AppToolbar(
-            modifier = Modifier.wrapContentHeight(),
-            title = stringResource(R.string.app_name)
+            modifier = Modifier
+                .wrapContentHeight(),
+            title = stringResource(R.string.app_name),
         ) {
             NewGameIcon(onEventHandler = onEventHandler)
         }
@@ -109,7 +108,7 @@ fun ActiveGameScreen(
                     Modifier
                         .alpha(completeAlpha)
                 ) {
-                     GameCompleteContent(
+                    GameCompleteContent(
                         viewModel.timerState,
                         viewModel.isNewRecordState
                     )
@@ -122,11 +121,25 @@ fun ActiveGameScreen(
                 }
             }
         }
-
-
     }
-    
-    
+}
+
+@Composable
+fun NewGameIcon(onEventHandler: (ActiveGameEvent) -> Unit) {
+    Icon(
+        imageVector = Icons.Filled.Add,
+        tint = if (MaterialTheme.colors.isLight) textColorLight else textColorDark,
+        contentDescription = null,
+        modifier = Modifier
+            .clickable(onClick = {
+                onEventHandler.invoke(
+                    ActiveGameEvent.OnNewGameClicked
+                )
+            }
+            )
+            .padding(horizontal = 16.dp, vertical = 16.dp)
+            .height(36.dp),
+    )
 }
 
 @Composable
@@ -135,34 +148,32 @@ fun GameContent(
     viewModel: ActiveGameViewModel
 ) {
     BoxWithConstraints {
-        val screenWidth = with(LocalDensity.current){
+        val screenWidth = with(LocalDensity.current) {
             constraints.maxWidth.toDp()
         }
 
-        val margin = with(LocalDensity.current){
-            when{
-                constraints.maxHeight.toDp().value < 500 -> 20
-                constraints.maxHeight.toDp().value < 550 -> 8
+        val margin = with(LocalDensity.current) {
+            when {
+                constraints.maxHeight.toDp().value < 500f -> 20
+                constraints.maxHeight.toDp().value < 550f -> 8
                 else -> 0
             }
         }
-        
+
         ConstraintLayout {
             val (board, timer, diff, inputs) = createRefs()
-
-            Box(
-                Modifier
-                    .constrainAs(board) {
-                        top.linkTo(parent.top)
-                        start.linkTo(parent.start)
-                        end.linkTo(parent.end)
-                    }
-                    .background(MaterialTheme.colors.surface)
-                    .size(screenWidth - margin.dp)
-                    .border(
-                        width = 2.dp,
-                        color = MaterialTheme.colors.primaryVariant
-                    )
+            Box(Modifier
+                .constrainAs(board) {
+                    top.linkTo(parent.top)
+                    start.linkTo(parent.start)
+                    end.linkTo(parent.end)
+                }
+                .background(MaterialTheme.colors.surface)
+                .size(screenWidth - margin.dp)
+                .border(
+                    width = 2.dp,
+                    color = MaterialTheme.colors.primaryVariant
+                )
             ) {
                 SudokuBoard(
                     onEventHandler,
@@ -170,17 +181,27 @@ fun GameContent(
                     screenWidth - margin.dp
                 )
             }
+            Box(Modifier
+                .wrapContentSize()
+                .constrainAs(timer) {
+                    top.linkTo(board.bottom)
+                    start.linkTo(parent.start)
+                }
+                .padding(start = 16.dp))
+            {
+                TimerText(viewModel)
+            }
             Row(
-                Modifier
+                modifier = Modifier
                     .wrapContentSize()
                     .constrainAs(diff) {
                         top.linkTo(board.bottom)
                         end.linkTo(parent.end)
                     }
             ) {
-                (0..viewModel.difficulty.ordinal).forEach{
+                (0..viewModel.difficulty.ordinal).forEach {
                     Icon(
-                        contentDescription = stringResource(id = R.string.difficulty),
+                        contentDescription = stringResource(R.string.difficulty),
                         imageVector = Icons.Filled.Star,
                         tint = MaterialTheme.colors.secondary,
                         modifier = Modifier
@@ -189,102 +210,34 @@ fun GameContent(
                     )
                 }
             }
-            Box(
-                Modifier
-                    .wrapContentSize()
-                    .constrainAs(timer) {
-                        top.linkTo(board.bottom)
-                        start.linkTo(parent.start)
-                    }
-                    .padding(start = 16.dp))
-            {
-                TimerText(viewModel)
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .wrapContentHeight()
+                    .constrainAs(inputs) {
+                        top.linkTo(timer.bottom)
+                    },
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                if (viewModel.boundary == 4) {
+                    InputButtonRow(
+                        (0..4).toList(),
+                        onEventHandler
+                    )
+                } else {
+                    InputButtonRow(
+                        (0..4).toList(),
+                        onEventHandler
+                    )
+
+                    InputButtonRow(
+                        (5..9).toList(),
+                        onEventHandler
+                    )
+                }
             }
-             Column(
-                 modifier = Modifier
-                     .fillMaxWidth()
-                     .wrapContentHeight()
-                     .constrainAs(inputs) {
-                         top.linkTo(timer.bottom)
-                     },
-                 horizontalAlignment = Alignment.CenterHorizontally
-             ) {
-                 if (viewModel.boundary == 4){
-                     InputButtonRow(
-                         (0..4).toList(),
-                         onEventHandler
-                     )
-                 } else{
-                     InputButtonRow(
-                         (0..4).toList(),
-                         onEventHandler
-                     )
-                     InputButtonRow(
-                         (5..9).toList(),
-                         onEventHandler
-                     )
-                 }
-
-             }
-
-
-
         }
     }
-
-}
-
-@Composable
-fun InputButtonRow(numbers: List<Int>, onEventHandler: (ActiveGameEvent) -> Unit) {
-
-    Row {
-        numbers.forEach {
-            SudokuInputButton(
-                onEventHandler,
-                it
-            )
-        }
-    }
-    Spacer(modifier = Modifier.size(2.dp))
-}
-
-@Composable
-fun SudokuInputButton(onEventHandler: (ActiveGameEvent) -> Unit, number: Int) {
-    TextButton(
-        onClick = { onEventHandler.invoke(ActiveGameEvent.OnInput(number))},
-        modifier = Modifier
-            .requiredSize(56.dp)
-            .padding(2.dp),
-        border = BorderStroke(
-            ButtonDefaults.OutlinedBorderSize, MaterialTheme.colors.onPrimary
-        )
-    ) {
-        Text(
-            text = number.toString(),
-            style = inputButton.copy(color = MaterialTheme.colors.onPrimary),
-            modifier = Modifier.fillMaxSize()
-         )
-    }
-}
-
-@Composable
-fun TimerText(viewModel: ActiveGameViewModel) {
-    var timerState by remember {
-        mutableStateOf("")
-    }
-
-    viewModel.subTimerState = {
-        timerState = it.toTime()
-    }
-
-    Text(
-        text = timerState,
-        style = activeGameSubtitle.copy(
-            color = MaterialTheme.colors.secondary
-        )
-    )
-
-
 }
 
 @Composable
@@ -295,7 +248,7 @@ fun SudokuBoard(
 ) {
     val boundary = viewModel.boundary
 
-    val tileOffset = size.value - boundary
+    val tileOffset = size.value / boundary
 
     var boardState by remember {
         mutableStateOf(viewModel.boardState, neverEqualPolicy())
@@ -306,20 +259,71 @@ fun SudokuBoard(
     }
 
     SudokuTextFields(
-        onEventHandler,
-        tileOffset,
-        boardState
+        onEventHandler = onEventHandler,
+        tileOffset = tileOffset,
+        boardState = boardState
     )
-    BoardGrid(
-        boundary,
-        tileOffset
-    )
+    BoardGrid(boundary = boundary, tileOffset = tileOffset)
+}
+
+@Composable
+fun SudokuTextFields(
+    onEventHandler: (ActiveGameEvent) -> Unit,
+    tileOffset: Float,
+    boardState: HashMap<Int, SudokuTile>
+) {
+    boardState.values.forEach { tile ->
+        var text = tile.value.toString()
+
+        if (!tile.readOnly) {
+            if (text == "0") text = ""
+
+            Text(
+                text = text,
+                style = mutableSudokuSquare(tileOffset)
+                    .copy(
+                        color = if (MaterialTheme.colors.isLight) userInputtedNumberLight
+                        else userInputtedNumberDark
+                    ),
+                modifier = Modifier
+                    .absoluteOffset(
+                        (tileOffset * (tile.x - 1)).dp,
+                        (tileOffset * (tile.y - 1)).dp
+                    )
+                    .width(tileOffset.dp)
+                    .height(tileOffset.dp)
+                    .background(
+                        if (tile.hasFocus) MaterialTheme.colors.onPrimary.copy(alpha = .25f)
+                        else MaterialTheme.colors.surface
+                    )
+                    .clickable(onClick = {
+                        onEventHandler.invoke(
+                            ActiveGameEvent.OnTileFocused(tile.x, tile.y)
+                        )
+                    })
+            )
+        } else {
+            Text(
+                text = text,
+                style = readOnlySudokuSquare(
+                    tileOffset
+                ),
+                modifier = Modifier
+                    .absoluteOffset(
+                        (tileOffset * (tile.x - 1)).dp,
+                        (tileOffset * (tile.y - 1)).dp
+                    )
+                    .width(tileOffset.dp)
+                    .height(tileOffset.dp)
+            )
+        }
+    }
 }
 
 @Composable
 fun BoardGrid(boundary: Int, tileOffset: Float) {
     (1 until boundary).forEach {
-        val width = if (it % Math.sqrt(boundary.toDouble()).toInt() == 0) 3.dp
+        val width = if (it % boundary.sqrt == 0) 3.dp
         else 1.dp
         Divider(
             color = MaterialTheme.colors.primaryVariant,
@@ -329,7 +333,7 @@ fun BoardGrid(boundary: Int, tileOffset: Float) {
                 .width(width)
         )
 
-        val height = if (it % boundary == 0) 3.dp
+        val height = if (it % boundary.sqrt == 0) 3.dp
         else 1.dp
         Divider(
             color = MaterialTheme.colors.primaryVariant,
@@ -341,65 +345,61 @@ fun BoardGrid(boundary: Int, tileOffset: Float) {
     }
 }
 
+
 @Composable
-fun SudokuTextFields(
-    onEventHandler: (ActiveGameEvent) -> Unit,
-    tileOffset: Float,
-    boardState: HashMap<Int, SudokuTile>
-) {
+fun TimerText(viewModel: ActiveGameViewModel) {
 
-    boardState.values.forEach{ tile ->
-        var text = tile.value.toString()
-
-        if (!tile.readOnly) {
-            if (text == "0") text = ""
-            Text(
-                text = text,
-                style = mutableSudokuSquare(tileOffset).copy(
-                    if(MaterialTheme.colors.isLight) userInputtedNumberLight
-                else userInputtedNumberDark
-                ),
-                modifier = Modifier
-                    .absoluteOffset(
-                        (tileOffset * (tile.x - 1)).dp,
-                        (tileOffset * (tile.y - 1)).dp
-                    )
-                    .size(tileOffset.dp)
-                    .background(
-                        if (tile.hasFocus) MaterialTheme.colors.onPrimary.copy(alpha = .25f)
-                        else MaterialTheme.colors.surface
-                    )
-                    .clickable {
-                        onEventHandler.invoke(ActiveGameEvent.OnTileFocused(tile.x, tile.y))
-                    }
-            )
-        } else {
-            Text(
-                text = text,
-                style = readOnlySudokuSquare(tileOffset),
-                modifier = Modifier
-                    .absoluteOffset(
-                        (tileOffset * (tile.x - 1)).dp,
-                        (tileOffset * (tile.y - 1)).dp
-                    )
-                    .size(tileOffset.dp)
-            )
-        }
+    var timerState by remember {
+        mutableStateOf("")
     }
+
+    viewModel.subTimerState = {
+        timerState = it.toTime()
+    }
+
+    Text(
+        modifier = Modifier.requiredHeight(36.dp),
+        text = timerState,
+        style = activeGameSubtitle.copy(color = MaterialTheme.colors.secondary)
+    )
 }
 
 @Composable
-fun NewGameIcon(onEventHandler: (ActiveGameEvent) -> Unit) {
-    Icon(
-        imageVector = Icons.Filled.Add,
-        tint = if (MaterialTheme.colors.isLight) textColorLight else textColorDark,
-        contentDescription = null,
-        modifier = Modifier
-            .clickable { onEventHandler.invoke(ActiveGameEvent.OnNewGameClicked) }
-            .padding(horizontal = 16.dp, vertical = 16.dp)
-            .height(36.dp)
+fun InputButtonRow(
+    numbers: List<Int>,
+    onEventHandler: (ActiveGameEvent) -> Unit
+) {
+    Row {
+        numbers.forEach {
+            SudokuInputButton(
+                onEventHandler,
+                it
+            )
+        }
+    }
 
-    )
+    Spacer(modifier = Modifier.size(2.dp))
+}
+
+@Composable
+fun SudokuInputButton(
+    onEventHandler: (ActiveGameEvent) -> Unit,
+    number: Int
+) {
+    TextButton(
+        onClick = { onEventHandler.invoke(ActiveGameEvent.OnInput(number)) },
+        modifier = Modifier
+            .requiredSize(56.dp)
+            .padding(2.dp),
+        border = BorderStroke(ButtonDefaults.OutlinedBorderSize, MaterialTheme.colors.onPrimary),
+
+        ) {
+        Text(
+            text = number.toString(),
+            style = inputButton.copy(color = MaterialTheme.colors.onPrimary),
+            modifier = Modifier.fillMaxSize()
+        )
+    }
 }
 
 @Composable
@@ -449,3 +449,4 @@ fun GameCompleteContent(timerState: Long, isNewRecordState: Boolean) {
         )
     }
 }
+

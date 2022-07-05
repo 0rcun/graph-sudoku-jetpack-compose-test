@@ -56,6 +56,11 @@ class ActiveGameLogic(
         }
     }
 
+    init {
+        //allows cancellation
+        jobTracker = Job()
+    }
+
     private fun onTileFocused(x: Int, y: Int) {
         viewModel.updateFocusState(x, y)
     }
